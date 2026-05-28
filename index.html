@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#07070D">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NetWorth">
+<link rel="manifest" href="manifest.json">
+<title>NetWorth — Personal Finance Vault</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Epilogue:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#07070D; --s1:#0F0F18; --s2:#161621; --s3:#1D1D2A; --s4:#252535;
+    --b1:#2A2A3C; --b2:#363650;
+    --grn:#00F5A0; --grn2:#00D9F5;
+    --red:#FF4D6D; --red2:#FF8066;
+    --ylw:#FFD60A; --ylw2:#FF9F1C;
+    --pur:#B06EFF; --pur2:#7B2FFF;
+    --text:#F2F0FF; --text2:#9090B0; --text3:#4A4A6A;
+    --r:16px; --rs:10px;
+    --fh:'Syne',sans-serif; --fm:'DM Mono',monospace; --fb:'Epilogue',sans-serif;
+  }
+  html,body { height:100%; background:var(--bg); color:var(--text); font-family:var(--fb); overflow:hidden; }
+  #app { display:flex; flex-direction:column; height:100vh; max-width:860px; margin:0 auto; }
+  .page { display:none; flex:1; overflow-y:auto; overflow-x:hidden; padding-bottom:80px; scrollbar-width:thin; scrollbar-color:var(--b2) transparent; }
+  .page::-webkit-scrollbar{width:4px} .page::-webkit-scrollbar-track{background:transparent} .page::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px}
+  .page.active { display:block; }
+
+  /* BOTTOM NAV */
+  .bnav { display:flex; align-items:center; justify-content:center; border-top:1px solid var(--b1); background:var(--s1); height:64px; flex-shrink:0; position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:860px; z-index:100; }
+  .bnav-btn { flex:1; max-width:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; height:100%; background:none; border:none; cursor:pointer; transition:all .15s; }
+  .bnav-icon { font-size:20px; line-height:1; transition:transform .15s; }
+  .bnav-label { font-family:var(--fh); font-size:9px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text3); transition:color .15s; }
+  .bnav-btn.active .bnav-label { color:var(--text); }
+  .bnav-btn:hover .bnav-icon { transform:translateY(-2px); }
+  .home-pill { display:flex; align-items:center; justify-content:center; width:48px; height:34px; border-radius:12px; background:var(--s3); transition:background .2s; font-size:20px; }
+  .bnav-btn.active.home-btn .home-pill { background:linear-gradient(135deg,#FF3CAC,#784BA0,#2B86C5); }
+
+  /* DASHBOARD */
+  .dash { padding:1.75rem 1.5rem; display:flex; flex-direction:column; gap:1.25rem; }
+  .nw-hero { text-align:center; padding:1.5rem 1rem .75rem; }
+  .nw-hero-label { font-family:var(--fh); font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--text3); margin-bottom:.5rem; }
+  .nw-big { font-family:var(--fh); font-size:clamp(2rem,8vw,3.5rem); font-weight:800; letter-spacing:-.05em; line-height:1; margin-bottom:.4rem; }
+  .nw-pos { background:linear-gradient(90deg,var(--grn),var(--grn2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .nw-neg { background:linear-gradient(90deg,var(--red),var(--red2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .nw-zero { color:var(--text2); -webkit-text-fill-color:var(--text2); }
+  .nw-sub { font-size:12px; color:var(--text2); }
+  .kpi-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .kpi { border-radius:var(--r); padding:1rem 1.1rem; border:1px solid transparent; }
+  .kpi-label { font-family:var(--fh); font-size:9px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin-bottom:.45rem; opacity:.8; }
+  .kpi-val { font-family:var(--fm); font-size:1.1rem; font-weight:500; }
+  .kpi-assets { background:linear-gradient(135deg,#00301E,#00422A); border-color:#005A38; }
+  .kpi-assets .kpi-label,.kpi-assets .kpi-val { color:var(--grn); }
+  .kpi-liabs { background:linear-gradient(135deg,#2D0014,#400020); border-color:#5C002E; }
+  .kpi-liabs .kpi-label,.kpi-liabs .kpi-val { color:var(--red); }
+  .kpi-ratio { background:linear-gradient(135deg,#1A1200,#261A00); border-color:#3D2900; }
+  .kpi-ratio .kpi-label,.kpi-ratio .kpi-val { color:var(--ylw); }
+  .breakdown { background:var(--s1); border:1px solid var(--b1); border-radius:var(--r); padding:1.25rem 1.5rem; }
+  .section-label { font-family:var(--fh); font-size:9px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--text3); margin-bottom:1rem; }
+  .bdgrid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
+  .bcol-title { font-family:var(--fh); font-size:11px; font-weight:700; letter-spacing:.06em; margin-bottom:.6rem; }
+  .brow { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--b1); }
+  .brow:last-child { border-bottom:none; }
+  .bdot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .bname { flex:1; font-size:11px; color:var(--text2); }
+  .bbar { width:56px; height:3px; background:var(--s4); border-radius:2px; overflow:hidden; flex-shrink:0; }
+  .bbar-fill { height:100%; border-radius:2px; transition:width .4s; }
+  .bval { font-family:var(--fm); font-size:11px; min-width:56px; text-align:right; }
+  .bempty { font-size:11px; color:var(--text3); padding:.5rem 0; }
+
+  /* UNACCOUNTED */
+  .unacc-card { background:linear-gradient(135deg,#0E0A1F,#150E2A); border:1px solid #2D1F5E; border-radius:var(--r); padding:1.25rem 1.5rem; }
+  .unacc-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:.3rem; }
+  .unacc-title-wrap { display:flex; align-items:center; gap:8px; }
+  .unacc-pip { width:8px; height:8px; border-radius:50%; background:var(--pur); box-shadow:0 0 8px var(--pur); animation:pip 2s infinite; }
+  @keyframes pip { 0%,100%{opacity:1}50%{opacity:.3} }
+  .unacc-title { font-family:var(--fh); font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--pur); }
+  .unacc-total { font-family:var(--fm); font-size:13px; color:var(--pur); }
+  .unacc-note { font-size:10px; color:var(--text3); margin-bottom:.85rem; }
+  .unacc-items { display:flex; flex-direction:column; gap:6px; margin-bottom:.75rem; }
+  .unacc-item { display:flex; align-items:center; gap:8px; background:rgba(176,110,255,.07); border-radius:var(--rs); padding:8px 12px; border:1px solid rgba(176,110,255,.15); }
+  .unacc-item-name { flex:1; font-size:12px; color:var(--text); }
+  .unacc-item-val { font-family:var(--fm); font-size:11px; color:var(--pur); }
+  .unacc-item-del { width:22px; height:22px; border-radius:5px; border:1px solid var(--b1); background:none; color:var(--text3); cursor:pointer; font-size:10px; transition:all .15s; display:flex; align-items:center; justify-content:center; }
+  .unacc-item-del:hover { border-color:var(--red); color:var(--red); }
+  .unacc-add { display:flex; gap:6px; }
+  .unacc-inp { flex:1; background:rgba(255,255,255,.04); border:1px solid var(--b1); border-radius:var(--rs); padding:9px 11px; color:var(--text); font-family:var(--fb); font-size:12px; outline:none; transition:border-color .15s; }
+  .unacc-inp:focus { border-color:var(--pur); }
+  .unacc-inp::placeholder { color:var(--text3); }
+  .unacc-inp-num { width:120px; font-family:var(--fm); }
+  .unacc-btn { background:var(--pur2); color:var(--text); border:none; border-radius:var(--rs); padding:9px 16px; font-family:var(--fh); font-size:11px; font-weight:700; cursor:pointer; transition:background .15s; white-space:nowrap; }
+  .unacc-btn:hover { background:var(--pur); }
+
+  /* ENTRY PAGES */
+  .epage { padding:1.75rem 1.5rem; display:flex; flex-direction:column; gap:1rem; }
+  .epage-hdr { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:.25rem; }
+  .epage-title { font-family:var(--fh); font-size:1.5rem; font-weight:800; letter-spacing:-.03em; }
+  .epage-total { font-family:var(--fm); font-size:1.1rem; font-weight:500; }
+  .form-card { background:var(--s1); border:1px solid var(--b1); border-radius:var(--r); padding:1.25rem 1.5rem; }
+  .form-card-lbl { font-family:var(--fh); font-size:9px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--text3); margin-bottom:1rem; }
+  .form-grid { display:flex; flex-direction:column; gap:12px; }
+  .form-row { display:flex; flex-direction:column; gap:5px; }
+  .form-row-label { font-size:11px; color:var(--text2); font-family:var(--fh); font-weight:600; letter-spacing:.06em; }
+  .finp { width:100%; background:var(--s3); border:1px solid var(--b1); border-radius:var(--rs); padding:10px 13px; color:var(--text); font-family:var(--fb); font-size:13px; outline:none; transition:border-color .15s; }
+  .finp:focus { border-color:var(--b2); }
+  .finp::placeholder { color:var(--text3); }
+  .fsel { appearance:none; -webkit-appearance:none; background:var(--s3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234A4A6A' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 13px center; padding-right:36px; cursor:pointer; }
+  .fsel option { background:var(--s2); color:var(--text); }
+  .fnote { min-height:64px; resize:vertical; font-size:12px; line-height:1.55; }
+  .save-btn { width:100%; margin-top:.85rem; padding:13px; border:none; border-radius:var(--rs); font-family:var(--fh); font-size:13px; font-weight:700; letter-spacing:.06em; cursor:pointer; transition:filter .15s,transform .1s; }
+  .save-btn:hover { filter:brightness(1.12); }
+  .save-btn:active { transform:scale(.98); }
+  .save-btn-asset { background:linear-gradient(90deg,#00C68A,#00B4D8); color:#040F0C; }
+  .save-btn-liab  { background:linear-gradient(90deg,var(--red),var(--red2)); color:#0F0004; }
+  .items-wrap { display:flex; flex-direction:column; gap:10px; }
+  .cat-group-hdr { display:flex; align-items:center; gap:8px; padding:6px 4px; margin-bottom:5px; }
+  .cat-group-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .cat-group-name { font-family:var(--fh); font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--text2); flex:1; }
+  .cat-group-total { font-family:var(--fm); font-size:11px; font-weight:500; }
+  .item-card { background:var(--s1); border:1px solid var(--b1); border-radius:var(--r); overflow:hidden; transition:border-color .15s; margin-bottom:6px; }
+  .item-card:hover { border-color:var(--b2); }
+  .item-card-hdr { display:flex; align-items:center; gap:10px; padding:12px 14px; }
+  .item-card-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .item-card-name { flex:1; font-size:13px; font-weight:500; color:var(--text); }
+  .item-card-type { font-size:9px; color:var(--text3); font-family:var(--fh); text-transform:uppercase; letter-spacing:.06em; background:var(--s3); border-radius:20px; padding:3px 10px; white-space:nowrap; }
+  .item-card-val { font-family:var(--fm); font-size:12px; font-weight:500; margin:0 4px; white-space:nowrap; }
+  .item-card-del { width:27px; height:27px; border-radius:6px; border:1px solid var(--b1); background:none; color:var(--text3); cursor:pointer; font-size:11px; transition:all .15s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .item-card-del:hover { border-color:var(--red); color:var(--red); background:rgba(255,77,109,.07); }
+  .item-card-note { padding:8px 14px 10px; font-size:11px; color:var(--text2); line-height:1.55; border-top:1px solid var(--b1); background:rgba(255,255,255,.015); }
+  .list-empty { text-align:center; color:var(--text3); font-size:12px; padding:2rem 0; font-family:var(--fm); }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(8px); background:var(--s4); border:1px solid var(--b2); border-radius:var(--rs); padding:9px 20px; font-size:12px; color:var(--text); opacity:0; transition:all .2s; z-index:200; pointer-events:none; font-family:var(--fm); white-space:nowrap; max-width:90vw; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ASSETS PAGE -->
+  <div class="page" id="page-assets">
+    <div class="epage">
+      <div class="epage-hdr">
+        <div class="epage-title" style="background:linear-gradient(90deg,#00F5A0,#00D9F5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Assets</div>
+        <div class="epage-total" id="assets-total" style="color:var(--grn)">₹0</div>
+      </div>
+      <div class="form-card">
+        <div class="form-card-lbl">Add New Asset</div>
+        <div class="form-grid">
+          <div class="form-row">
+            <div class="form-row-label">Asset Name</div>
+            <input class="finp" id="a-name" placeholder="e.g. SBI Savings Account, Gold ETF…" autocomplete="off">
+          </div>
+          <div class="form-row">
+            <div class="form-row-label">Type</div>
+            <select class="finp fsel" id="a-type">
+              <option value="bank">Bank Accounts</option>
+              <option value="debtors">Debtors (Receivables)</option>
+              <option value="other">Other Assets</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-row-label">Amount (₹)</div>
+            <input class="finp" id="a-val" type="number" min="0" step="any" placeholder="0.00">
+          </div>
+          <div class="form-row">
+            <div class="form-row-label">Note &nbsp;<span style="color:var(--text3);font-weight:400">(optional)</span></div>
+            <textarea class="finp fnote" id="a-note" placeholder="Account number, maturity date, any details…"></textarea>
+          </div>
+        </div>
+        <button class="save-btn save-btn-asset" onclick="addAsset()">SAVE ASSET</button>
+      </div>
+      <div class="items-wrap" id="assets-list"></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="dash">
+      <div class="nw-hero">
+        <div class="nw-hero-label">Total Net Worth</div>
+        <div class="nw-big nw-zero" id="nw-big">₹0</div>
+        <div class="nw-sub" id="nw-sub">Add assets &amp; liabilities to begin</div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi kpi-assets"><div class="kpi-label">Total Assets</div><div class="kpi-val" id="d-assets">₹0</div></div>
+        <div class="kpi kpi-liabs"><div class="kpi-label">Total Liabilities</div><div class="kpi-val" id="d-liabs">₹0</div></div>
+        <div class="kpi kpi-ratio"><div class="kpi-label">Debt Ratio</div><div class="kpi-val" id="d-ratio">—</div></div>
+      </div>
+      <div class="breakdown">
+        <div class="section-label">Category Breakdown</div>
+        <div class="bdgrid">
+          <div><div class="bcol-title" style="color:var(--grn)">Assets</div><div id="bd-assets"><div class="bempty">No assets yet</div></div></div>
+          <div><div class="bcol-title" style="color:var(--red)">Liabilities</div><div id="bd-liabs"><div class="bempty">No liabilities yet</div></div></div>
+        </div>
+      </div>
+      <div class="unacc-card">
+        <div class="unacc-hdr">
+          <div class="unacc-title-wrap"><div class="unacc-pip"></div><span class="unacc-title">Unaccounted Income</span></div>
+          <span class="unacc-total" id="unacc-total">₹0</span>
+        </div>
+        <div class="unacc-note">Recorded for awareness only — not included in net worth</div>
+        <div class="unacc-items" id="unacc-items"><div style="font-size:11px;color:var(--text3)">No entries yet</div></div>
+        <div class="unacc-add">
+          <input class="unacc-inp" id="ui-name" placeholder="Source or description…" autocomplete="off" onkeydown="if(event.key==='Enter')addUnacc()">
+          <input class="unacc-inp unacc-inp-num" id="ui-val" type="number" min="0" step="any" placeholder="₹ Amount" onkeydown="if(event.key==='Enter')addUnacc()">
+          <button class="unacc-btn" onclick="addUnacc()">+ Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIABILITIES PAGE -->
+  <div class="page" id="page-liabilities">
+    <div class="epage">
+      <div class="epage-hdr">
+        <div class="epage-title" style="background:linear-gradient(90deg,#FF4D6D,#FF8066);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Liabilities</div>
+        <div class="epage-total" id="liabs-total" style="color:var(--red)">₹0</div>
+      </div>
+      <div class="form-card">
+        <div class="form-card-lbl">Add New Liability</div>
+        <div class="form-grid">
+          <div class="form-row">
+            <div class="form-row-label">Liability Name</div>
+            <input class="finp" id="l-name" placeholder="e.g. HDFC Home Loan, Vendor Payable…" autocomplete="off">
+          </div>
+          <div class="form-row">
+            <div class="form-row-label">Type</div>
+            <select class="finp fsel" id="l-type">
+              <option value="credit">Credit Cards</option>
+              <option value="creditors">Creditors (Payables)</option>
+              <option value="expenses">Expenses Payable</option>
+              <option value="other">Other Liabilities</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-row-label">Amount (₹)</div>
+            <input class="finp" id="l-val" type="number" min="0" step="any" placeholder="0.00">
+          </div>
+          <div class="form-row">
+            <div class="form-row-label">Note &nbsp;<span style="color:var(--text3);font-weight:400">(optional)</span></div>
+            <textarea class="finp fnote" id="l-note" placeholder="Due date, interest rate, lender details…"></textarea>
+          </div>
+        </div>
+        <button class="save-btn save-btn-liab" onclick="addLiab()">SAVE LIABILITY</button>
+      </div>
+      <div class="items-wrap" id="liabs-list"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bnav">
+    <button class="bnav-btn" id="btn-assets" onclick="goTo('assets')">
+      <div class="bnav-icon">📈</div>
+      <div class="bnav-label">Assets</div>
+    </button>
+    <button class="bnav-btn home-btn active" id="btn-dashboard" onclick="goTo('dashboard')">
+      <div class="home-pill">⌂</div>
+      <div class="bnav-label">Dashboard</div>
+    </button>
+    <button class="bnav-btn" id="btn-liabilities" onclick="goTo('liabilities')">
+      <div class="bnav-icon">📉</div>
+      <div class="bnav-label">Liabilities</div>
+    </button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ACAT={bank:{label:'Bank Accounts',color:'#00F5A0'},debtors:{label:'Debtors (Receivables)',color:'#00D9F5'},other:{label:'Other Assets',color:'#B06EFF'}};
+const LCAT={credit:{label:'Credit Cards',color:'#FF4D6D'},creditors:{label:'Creditors (Payables)',color:'#FF8066'},expenses:{label:'Expenses Payable',color:'#FFD60A'},other:{label:'Other Liabilities',color:'#FF6BD6'}};
+const STORE_KEY='networth_app_v1';
+
+function loadStore(){try{const r=localStorage.getItem(STORE_KEY);if(r)return JSON.parse(r);}catch(e){}return{assets:[],liabilities:[],unacc:[]};}
+function saveStore(){try{localStorage.setItem(STORE_KEY,JSON.stringify(store));}catch(e){}}
+
+let store=loadStore();
+if(!Array.isArray(store.assets))store.assets=[];
+if(!Array.isArray(store.liabilities))store.liabilities=[];
+if(!Array.isArray(store.unacc))store.unacc=[];
+
+function fmt(n){const a=Math.abs(n),s=n<0?'-':'';if(a>=10000000)return s+'₹'+(a/10000000).toFixed(2)+' Cr';if(a>=100000)return s+'₹'+(a/100000).toFixed(2)+' L';if(a>=1000)return s+'₹'+(a/1000).toFixed(1)+'K';return s+'₹'+a.toLocaleString('en-IN');}
+function fmtF(n){return(n<0?'-':'')+'₹'+Math.abs(Math.round(n)).toLocaleString('en-IN');}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+const PAGES=['assets','dashboard','liabilities'];
+function goTo(p){
+  PAGES.forEach(n=>{document.getElementById('page-'+n).classList.toggle('active',n===p);document.getElementById('btn-'+n).classList.toggle('active',n===p);});
+  if(p==='dashboard')renderDash();else if(p==='assets')renderAssets();else renderLiabs();
+}
+
+/* ASSETS */
+function addAsset(){
+  const nEl=document.getElementById('a-name'),tEl=document.getElementById('a-type'),vEl=document.getElementById('a-val'),oEl=document.getElementById('a-note');
+  const name=nEl.value.trim(),type=tEl.value,value=parseFloat(vEl.value),note=oEl.value.trim();
+  if(!name){toast('⚠ Enter an asset name');nEl.focus();return;}
+  if(isNaN(value)||value<0){toast('⚠ Enter a valid amount');vEl.focus();return;}
+  store.assets.push({id:Date.now(),name,type,value,note});saveStore();
+  nEl.value='';vEl.value='';oEl.value='';nEl.focus();
+  renderAssets();toast('✓ Asset saved');
+}
+function delAsset(id){store.assets=store.assets.filter(a=>a.id!==id);saveStore();renderAssets();toast('Removed');}
+function renderAssets(){
+  const total=store.assets.reduce((s,a)=>s+a.value,0);
+  document.getElementById('assets-total').textContent=fmtF(total);
+  const el=document.getElementById('assets-list');
+  if(!store.assets.length){el.innerHTML='<div class="list-empty">No assets yet — add your first one above</div>';return;}
+  let html='';
+  Object.entries(ACAT).forEach(([k,cat])=>{
+    const items=store.assets.filter(a=>a.type===k);if(!items.length)return;
+    const ct=items.reduce((s,i)=>s+i.value,0);
+    html+=`<div class="cat-group"><div class="cat-group-hdr"><div class="cat-group-dot" style="background:${cat.color}"></div><span class="cat-group-name">${cat.label}</span><span class="cat-group-total" style="color:${cat.color}">${fmt(ct)}</span></div>
+    ${items.map(i=>`<div class="item-card"><div class="item-card-hdr"><div class="item-card-dot" style="background:${cat.color}"></div><span class="item-card-name">${esc(i.name)}</span><span class="item-card-type">${cat.label}</span><span class="item-card-val" style="color:${cat.color}">${fmtF(i.value)}</span><button class="item-card-del" onclick="delAsset(${i.id})">✕</button></div>${i.note?`<div class="item-card-note">${esc(i.note)}</div>`:''}</div>`).join('')}</div>`;
+  });
+  el.innerHTML=html;
+}
+
+/* LIABILITIES */
+function addLiab(){
+  const nEl=document.getElementById('l-name'),tEl=document.getElementById('l-type'),vEl=document.getElementById('l-val'),oEl=document.getElementById('l-note');
+  const name=nEl.value.trim(),type=tEl.value,value=parseFloat(vEl.value),note=oEl.value.trim();
+  if(!name){toast('⚠ Enter a liability name');nEl.focus();return;}
+  if(isNaN(value)||value<0){toast('⚠ Enter a valid amount');vEl.focus();return;}
+  store.liabilities.push({id:Date.now(),name,type,value,note});saveStore();
+  nEl.value='';vEl.value='';oEl.value='';nEl.focus();
+  renderLiabs();toast('✓ Liability saved');
+}
+function delLiab(id){store.liabilities=store.liabilities.filter(l=>l.id!==id);saveStore();renderLiabs();toast('Removed');}
+function renderLiabs(){
+  const total=store.liabilities.reduce((s,l)=>s+l.value,0);
+  document.getElementById('liabs-total').textContent=fmtF(total);
+  const el=document.getElementById('liabs-list');
+  if(!store.liabilities.length){el.innerHTML='<div class="list-empty">No liabilities yet — add your first one above</div>';return;}
+  let html='';
+  Object.entries(LCAT).forEach(([k,cat])=>{
+    const items=store.liabilities.filter(l=>l.type===k);if(!items.length)return;
+    const ct=items.reduce((s,i)=>s+i.value,0);
+    html+=`<div class="cat-group"><div class="cat-group-hdr"><div class="cat-group-dot" style="background:${cat.color}"></div><span class="cat-group-name">${cat.label}</span><span class="cat-group-total" style="color:${cat.color}">${fmt(ct)}</span></div>
+    ${items.map(i=>`<div class="item-card"><div class="item-card-hdr"><div class="item-card-dot" style="background:${cat.color}"></div><span class="item-card-name">${esc(i.name)}</span><span class="item-card-type">${cat.label}</span><span class="item-card-val" style="color:${cat.color}">${fmtF(i.value)}</span><button class="item-card-del" onclick="delLiab(${i.id})">✕</button></div>${i.note?`<div class="item-card-note">${esc(i.note)}</div>`:''}</div>`).join('')}</div>`;
+  });
+  el.innerHTML=html;
+}
+
+/* UNACCOUNTED */
+function addUnacc(){
+  const nEl=document.getElementById('ui-name'),vEl=document.getElementById('ui-val');
+  const name=nEl.value.trim(),value=parseFloat(vEl.value);
+  if(!name){toast('⚠ Enter a description');nEl.focus();return;}
+  if(isNaN(value)||value<0){toast('⚠ Enter a valid amount');vEl.focus();return;}
+  store.unacc.push({id:Date.now(),name,value});saveStore();
+  nEl.value='';vEl.value='';nEl.focus();
+  renderUnacc();toast('✓ Recorded');
+}
+function delUnacc(id){store.unacc=store.unacc.filter(u=>u.id!==id);saveStore();renderUnacc();}
+function renderUnacc(){
+  const total=store.unacc.reduce((s,u)=>s+u.value,0);
+  document.getElementById('unacc-total').textContent=fmtF(total);
+  const el=document.getElementById('unacc-items');
+  el.innerHTML=store.unacc.length?store.unacc.map(u=>`<div class="unacc-item"><span class="unacc-item-name">${esc(u.name)}</span><span class="unacc-item-val">${fmtF(u.value)}</span><button class="unacc-item-del" onclick="delUnacc(${u.id})">✕</button></div>`).join(''):'<div style="font-size:11px;color:var(--text3)">No entries yet</div>';
+}
+
+/* DASHBOARD */
+function renderDash(){
+  const at=store.assets.reduce((s,a)=>s+a.value,0);
+  const lt=store.liabilities.reduce((s,l)=>s+l.value,0);
+  const nw=at-lt;
+  const nwEl=document.getElementById('nw-big');
+  nwEl.textContent=fmtF(nw);
+  nwEl.className='nw-big '+(nw>0?'nw-pos':nw<0?'nw-neg':'nw-zero');
+  document.getElementById('nw-sub').textContent=nw>0?`Assets exceed liabilities by ${fmt(nw)}`:nw<0?`Liabilities exceed assets by ${fmt(Math.abs(nw))}`:'Perfectly balanced';
+  document.getElementById('d-assets').textContent=fmtF(at);
+  document.getElementById('d-liabs').textContent=fmtF(lt);
+  const drEl=document.getElementById('d-ratio');
+  if(at>0){const dr=Math.round((lt/at)*100);drEl.textContent=dr+'%';drEl.style.color=dr<=40?'var(--grn)':dr<=80?'var(--ylw)':'var(--red)';}
+  else{drEl.textContent='—';drEl.style.color='var(--text2)';}
+  const maxA=Math.max(...Object.keys(ACAT).map(k=>store.assets.filter(a=>a.type===k).reduce((s,i)=>s+i.value,0)),1);
+  let aH='';Object.entries(ACAT).forEach(([k,cat])=>{const v=store.assets.filter(a=>a.type===k).reduce((s,i)=>s+i.value,0);if(!v)return;const p=Math.round(v/maxA*100);aH+=`<div class="brow"><div class="bdot" style="background:${cat.color}"></div><span class="bname">${cat.label}</span><div class="bbar"><div class="bbar-fill" style="width:${p}%;background:${cat.color}"></div></div><span class="bval" style="color:${cat.color}">${fmt(v)}</span></div>`;});
+  document.getElementById('bd-assets').innerHTML=aH||'<div class="bempty">No assets yet</div>';
+  const maxL=Math.max(...Object.keys(LCAT).map(k=>store.liabilities.filter(l=>l.type===k).reduce((s,i)=>s+i.value,0)),1);
+  let lH='';Object.entries(LCAT).forEach(([k,cat])=>{const v=store.liabilities.filter(l=>l.type===k).reduce((s,i)=>s+i.value,0);if(!v)return;const p=Math.round(v/maxL*100);lH+=`<div class="brow"><div class="bdot" style="background:${cat.color}"></div><span class="bname">${cat.label}</span><div class="bbar"><div class="bbar-fill" style="width:${p}%;background:${cat.color}"></div></div><span class="bval" style="color:${cat.color}">${fmt(v)}</span></div>`;});
+  document.getElementById('bd-liabs').innerHTML=lH||'<div class="bempty">No liabilities yet</div>';
+  renderUnacc();
+}
+
+/* TOAST */
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2200);}
+
+/* KEYBOARD */
+document.addEventListener('keydown',e=>{if(e.altKey){if(e.key==='1')goTo('assets');else if(e.key==='2')goTo('dashboard');else if(e.key==='3')goTo('liabilities');}});
+
+/* INIT */
+renderDash();
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js')
+        .then(function(reg) { console.log('SW registered'); })
+        .catch(function(err) { console.log('SW failed:', err); });
+    });
+  }
+</script>
+</body>
+</html>
