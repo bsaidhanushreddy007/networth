@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Bank Quick Update</title>
+<meta name="theme-color" content="#12141a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest-bank.json">
+<style>
+  html, body{ margin:0; height:100%; background:#12141a; }
+</style>
+</head>
+<body>
+<script>
+  // Jump straight into the main app's quick-edit view for Bank Accounts.
+  location.replace('index.html?quickedit=' + encodeURIComponent('Bank Accounts'));
+</script>
+</body>
+</html>
