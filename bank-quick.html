@@ -2,20 +2,376 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>Bank Quick Update</title>
+
 <meta name="theme-color" content="#12141a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bank">
 <link rel="manifest" href="manifest-bank.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
 <style>
-  html, body{ margin:0; height:100%; background:#12141a; }
+:root{
+  --bg:#12141a; --panel:#1b1f28; --panel-2:#1f232d;
+  --border:rgba(255,255,255,0.07); --border-strong:rgba(255,255,255,0.12);
+  --text:#eceef2; --text-dim:#9aa0ac; --text-faint:#5e6470;
+  --emerald:#1fae7d; --emerald-light:#3ee0a8;
+  --gold:#d4af61; --gold-light:#f2cf8e;
+  --coral:#e2635b; --coral-light:#f2897f;
+  --violet:#8b7cf6; --violet-light:#ac9dff;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body{ height:100%; margin:0; overflow:hidden; overscroll-behavior-y:contain; }
+body{
+  font-family:var(--sans); color:var(--text);
+  background:radial-gradient(120% 90% at 50% -10%, #1b2029 0%, var(--bg) 55%);
+}
+#scroll{ position:absolute; inset:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:24px 20px 40px; }
+
+.eyebrow{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); font-weight:600; margin-bottom:2px; }
+h1{ font-size:21px; margin:0 0 22px; font-weight:650; letter-spacing:-0.01em; }
+
+.card{
+  background:linear-gradient(160deg, var(--panel-2) 0%, var(--panel) 100%);
+  border:1px solid var(--border); border-radius:18px; padding:18px; margin-bottom:12px;
+}
+.empty-state{ text-align:center; color:var(--text-faint); font-size:13.5px; padding:26px 10px; border:1px dashed var(--border); border-radius:14px; }
+
+.item-card{ display:flex; align-items:center; gap:12px; cursor:pointer; }
+.item-dot{ width:9px; height:9px; border-radius:50%; background:var(--emerald-light); flex-shrink:0; }
+.item-info{ flex:1; min-width:0; }
+.item-name{ font-size:14.5px; font-weight:600; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.item-badge{ font-size:10.5px; font-weight:600; color:var(--text-dim); background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:20px; }
+.item-amount{ font-family:var(--mono); font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; }
+
+.back-link{ background:none; border:none; color:var(--violet-light); font-size:13px; font-weight:600; cursor:pointer; padding:0 0 14px; }
+
+.modal-current{ text-align:center; margin:8px 0 18px; }
+.modal-current-label{ font-size:11px; color:var(--text-faint); letter-spacing:.08em; text-transform:uppercase; font-weight:700; margin-bottom:6px; }
+.modal-current-value{ font-family:var(--mono); font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; }
+
+.mode-row{ display:flex; gap:8px; margin-bottom:16px; }
+.mode-btn{
+  flex:1; padding:11px 4px; border-radius:12px; border:1px solid var(--border);
+  background:#171a21; color:var(--text-dim); font-size:12.5px; font-weight:700; cursor:pointer;
+}
+.mode-btn.subtract.active{ background:rgba(226,99,91,0.16); border-color:var(--coral); color:var(--coral-light); }
+.mode-btn.add.active{ background:rgba(31,174,125,0.16); border-color:var(--emerald); color:var(--emerald-light); }
+.mode-btn.set.active{ background:rgba(212,175,97,0.16); border-color:var(--gold); color:var(--gold-light); }
+
+.amount-row{ display:flex; align-items:stretch; gap:8px; margin-bottom:14px; }
+.sign-badge{
+  width:46px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  border-radius:12px; font-size:20px; font-weight:700; background:#171a21; border:1px solid var(--border);
+}
+.sign-badge.subtract{ color:var(--coral-light); border-color:rgba(226,99,91,0.4); }
+.sign-badge.add{ color:var(--emerald-light); border-color:rgba(31,174,125,0.4); }
+.sign-badge.set{ color:var(--gold-light); border-color:rgba(212,175,97,0.4); }
+.amount-row input{
+  flex:1; min-width:0; background:#171a21; border:1px solid var(--border); border-radius:12px;
+  padding:12px 14px; font-size:18px; font-weight:600; font-family:var(--mono); color:var(--text);
+}
+
+.preview-row{
+  display:flex; justify-content:space-between; align-items:center;
+  background:#171a21; border:1px solid var(--border); border-radius:14px;
+  padding:13px 16px; margin-bottom:18px;
+}
+.preview-label{ font-size:12.5px; color:var(--text-dim); font-weight:600; }
+.preview-value{ font-family:var(--mono); font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; }
+
+.save-btn{
+  display:block; width:100%; border:none; border-radius:13px; padding:14px 10px;
+  font-size:14px; font-weight:700; cursor:pointer;
+}
+.save-btn.subtract{ background:linear-gradient(135deg, var(--coral-light), var(--coral)); color:#2b0f0c; }
+.save-btn.add{ background:linear-gradient(135deg, var(--emerald-light), var(--emerald)); color:#06251a; }
+.save-btn.set{ background:linear-gradient(135deg, var(--gold-light), var(--gold)); color:#2b210a; }
+
+#toast-host{
+  position:fixed; left:0; right:0; bottom:24px; display:flex; flex-direction:column;
+  align-items:center; gap:8px; z-index:60; pointer-events:none;
+}
+.toast{
+  background:rgba(28,31,40,0.96); border:1px solid var(--border-strong); color:var(--text);
+  padding:11px 18px; border-radius:30px; font-size:13.5px; font-weight:600;
+  box-shadow:0 10px 30px -10px rgba(0,0,0,0.6);
+  animation:toastIn .25s ease, toastOut .25s ease 2.1s forwards;
+}
+.toast.error{ border-color:rgba(226,99,91,0.5); color:var(--coral-light); }
+@keyframes toastIn{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+@keyframes toastOut{ from{opacity:1;} to{opacity:0; transform:translateY(-6px);} }
 </style>
 </head>
 <body>
+
+<div id="scroll">
+  <div class="eyebrow">Quick Update</div>
+  <h1>Bank Accounts</h1>
+  <div id="content"></div>
+</div>
+
+<div id="toast-host"></div>
+
 <script>
-  // Jump straight into the main app's quick-edit view for Bank Accounts.
-  location.replace('index.html?quickedit=' + encodeURIComponent('Bank Accounts'));
+/* This page reads and writes the exact same localStorage data as the
+   main Net Worth app (same origin, same key) — it's a different door
+   into the same house, not a separate copy of your data. It never
+   navigates to index.html, which is what lets it install as its own
+   distinct home-screen app instead of merging with the main one. */
+
+const STORAGE_KEY = 'networth_tracker_data_v1';
+const TX_LIMIT = 500;
+const TARGET_TYPE = 'Bank Accounts';
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      parsed.assets = parsed.assets || [];
+      parsed.liabilities = parsed.liabilities || [];
+      parsed.unaccounted = parsed.unaccounted || [];
+      parsed.transactions = parsed.transactions || [];
+      return parsed;
+    }
+  }catch(e){}
+  return { assets: [], liabilities: [], unaccounted: [], transactions: [] };
+}
+
+let data = loadData();
+
+function persist(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function uid(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+
+function addTransaction(record){
+  record.id = uid();
+  record.timestamp = Date.now();
+  data.transactions.unshift(record);
+  if(data.transactions.length > TX_LIMIT) data.transactions.length = TX_LIMIT;
+  persist();
+}
+
+function formatINR(num){
+  const n = Number(num) || 0;
+  const sign = n < 0 ? '−' : '';
+  const abs = Math.abs(n);
+  if(abs >= 1e7) return sign + '₹' + (abs/1e7).toFixed(2) + ' Cr';
+  if(abs >= 1e5) return sign + '₹' + (abs/1e5).toFixed(2) + ' L';
+  if(abs >= 1000) return sign + '₹' + (abs/1000).toFixed(1) + 'K';
+  return sign + '₹' + abs.toLocaleString('en-IN');
+}
+function formatFull(num){
+  const n = Number(num) || 0;
+  return (n < 0 ? '−' : '') + '₹' + Math.abs(n).toLocaleString('en-IN');
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function showToast(message, isError){
+  const host = document.getElementById('toast-host');
+  const el = document.createElement('div');
+  el.className = 'toast' + (isError ? ' error' : '');
+  el.textContent = message;
+  host.appendChild(el);
+  setTimeout(() => el.remove(), 2400);
+}
+
+let mode = 'add';
+let currentItemId = null;
+
+function render(){
+  data = loadData(); // pick up anything changed via the main app since this page opened
+  const content = document.getElementById('content');
+  const matches = data.assets.filter(it => it.type === TARGET_TYPE);
+
+  if(matches.length === 0){
+    content.innerHTML = '<div class="empty-state">No Bank Accounts entries yet — add one from the full Net Worth app first.</div>';
+    currentItemId = null;
+    return;
+  }
+
+  if(matches.length === 1){
+    currentItemId = matches[0].id;
+    renderEditor(matches[0]);
+    return;
+  }
+
+  if(currentItemId && matches.find(it => it.id === currentItemId)){
+    renderEditor(matches.find(it => it.id === currentItemId));
+    return;
+  }
+
+  renderChooser(matches);
+}
+
+function renderChooser(matches){
+  const content = document.getElementById('content');
+  const list = document.createElement('div');
+  matches.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card item-card';
+    card.onclick = () => { currentItemId = item.id; mode = 'add'; render(); };
+    card.innerHTML = `
+      <span class="item-dot"></span>
+      <div class="item-info">
+        <div class="item-name">${escapeHtml(item.name)}</div>
+        <span class="item-badge">Bank Accounts</span>
+      </div>
+      <span class="item-amount">${formatINR(item.amount)}</span>
+    `;
+    list.appendChild(card);
+  });
+  content.innerHTML = '';
+  content.appendChild(list);
+}
+
+function renderEditor(item){
+  const content = document.getElementById('content');
+  const showBack = data.assets.filter(it => it.type === TARGET_TYPE).length > 1;
+
+  content.innerHTML = `
+    ${showBack ? '<button class="back-link" id="back-btn">‹ All Bank Accounts</button>' : ''}
+    <div class="card">
+      <div style="font-size:15px; font-weight:700; margin-bottom:2px;">${escapeHtml(item.name)}</div>
+      <div class="modal-current">
+        <div class="modal-current-label">Current Balance</div>
+        <div class="modal-current-value">${formatFull(item.amount)}</div>
+      </div>
+      <div class="mode-row">
+        <button class="mode-btn subtract" id="mode-subtract">− Subtract</button>
+        <button class="mode-btn add" id="mode-add">+ Add</button>
+        <button class="mode-btn set" id="mode-set">= Set Value</button>
+      </div>
+      <div class="amount-row">
+        <div class="sign-badge" id="sign-badge">+</div>
+        <input type="number" id="amount-input" placeholder="Enter amount" inputmode="decimal">
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">New Balance</span>
+        <span class="preview-value" id="preview-value">${formatFull(item.amount)}</span>
+      </div>
+      <button class="save-btn add" id="save-btn">Add & Save</button>
+    </div>
+  `;
+
+  if(showBack){
+    document.getElementById('back-btn').onclick = () => { currentItemId = null; render(); };
+  }
+
+  document.getElementById('mode-subtract').onclick = () => setMode('subtract', item);
+  document.getElementById('mode-add').onclick = () => setMode('add', item);
+  document.getElementById('mode-set').onclick = () => setMode('set', item);
+  document.getElementById('amount-input').oninput = () => updatePreview(item);
+  document.getElementById('save-btn').onclick = () => saveEdit(item);
+
+  setMode('add', item);
+}
+
+function setMode(m, item){
+  mode = m;
+  ['subtract', 'add', 'set'].forEach(x => {
+    document.getElementById('mode-' + x).classList.toggle('active', x === m);
+  });
+  const signBadge = document.getElementById('sign-badge');
+  signBadge.className = 'sign-badge ' + m;
+  signBadge.textContent = m === 'subtract' ? '−' : m === 'add' ? '+' : '=';
+
+  const saveBtn = document.getElementById('save-btn');
+  saveBtn.className = 'save-btn ' + m;
+  saveBtn.textContent = m === 'subtract' ? 'Subtract & Save' : m === 'add' ? 'Add & Save' : 'Set & Save';
+
+  updatePreview(item);
+}
+
+function computeNewBalance(item){
+  const input = parseFloat(document.getElementById('amount-input').value);
+  const val = isNaN(input) ? 0 : input;
+  if(mode === 'subtract') return item.amount - val;
+  if(mode === 'add') return item.amount + val;
+  return val;
+}
+
+function updatePreview(item){
+  const newBalance = computeNewBalance(item);
+  const el = document.getElementById('preview-value');
+  el.textContent = formatFull(newBalance);
+  el.style.color = newBalance < 0 ? 'var(--coral-light)' : 'var(--text)';
+}
+
+function saveEdit(item){
+  const rawInput = document.getElementById('amount-input').value;
+  const input = parseFloat(rawInput);
+
+  if(rawInput.trim() === '' || isNaN(input) || input < 0){
+    showToast('Enter a valid amount', true);
+    return;
+  }
+  if(mode !== 'set' && input === 0){
+    showToast('Enter a valid amount', true);
+    return;
+  }
+
+  data = loadData();
+  const freshItem = data.assets.find(it => it.id === item.id);
+  if(!freshItem) return;
+
+  const oldAmount = freshItem.amount;
+  let newBalance;
+  if(mode === 'subtract') newBalance = oldAmount - input;
+  else if(mode === 'add') newBalance = oldAmount + input;
+  else newBalance = input;
+
+  if(newBalance < 0){
+    // Same auto-conversion rule as the main app: negative asset becomes a liability.
+    const idx = data.assets.findIndex(it => it.id === freshItem.id);
+    if(idx !== -1) data.assets.splice(idx, 1);
+    const amountAbs = Math.abs(newBalance);
+    const oldType = freshItem.type;
+    freshItem.type = 'Other Liabilities';
+    freshItem.amount = amountAbs;
+    data.liabilities.push(freshItem);
+
+    addTransaction({
+      category: 'asset', itemId: freshItem.id, itemName: freshItem.name, type: oldType,
+      action: 'converted', delta: null, balanceAfter: amountAbs, toCategory: 'liability'
+    });
+
+    showToast('⚠ ' + freshItem.name + ' went negative — moved to Liabilities as ' + formatINR(amountAbs));
+    currentItemId = null;
+    render();
+    return;
+  }
+
+  freshItem.amount = newBalance;
+  const delta = mode === 'set' ? (newBalance - oldAmount) : input;
+  addTransaction({ category: 'asset', itemId: freshItem.id, itemName: freshItem.name, type: freshItem.type, action: mode, delta, balanceAfter: newBalance });
+
+  let message;
+  if(mode === 'subtract') message = '✓ ' + formatINR(input) + ' subtracted from ' + freshItem.name;
+  else if(mode === 'add') message = '✓ ' + formatINR(input) + ' added to ' + freshItem.name;
+  else message = '✓ ' + freshItem.name + ' set to ' + formatINR(newBalance);
+  showToast(message);
+
+  render();
+}
+
+render();
 </script>
 </body>
 </html>
